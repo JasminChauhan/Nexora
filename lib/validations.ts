@@ -40,7 +40,12 @@ export const studentSchema = z.object({
         .max(200, "Maximum 200 characters"),
     phone: z.string().max(20, "Maximum 20 characters").optional().or(z.literal("")),
     email: z.string().email("Invalid email").max(100).optional().or(z.literal("")),
+    password: z.string().min(6, "Minimum 6 characters"),
     description: z.string().optional(),
+});
+
+export const studentUpdateSchema = studentSchema.omit({ password: true }).extend({
+    password: z.string().min(6, "Minimum 6 characters").optional().or(z.literal("")),
 });
 
 // Project Group schemas
@@ -100,6 +105,7 @@ export type ProjectTypeFormData = z.infer<typeof projectTypeSchema>;
 export type StaffFormData = z.infer<typeof staffSchema>;
 export type StaffUpdateFormData = z.infer<typeof staffUpdateSchema>;
 export type StudentFormData = z.infer<typeof studentSchema>;
+export type StudentUpdateFormData = z.infer<typeof studentUpdateSchema>;
 export type ProjectGroupFormData = z.infer<typeof projectGroupSchema>;
 export type ProjectGroupMemberFormData = z.infer<typeof projectGroupMemberSchema>;
 export type MeetingFormData = z.infer<typeof meetingSchema>;

@@ -154,6 +154,9 @@ export default async function MyProjectPage() {
                                 {group.staff_projectgroup_guidestaffidTostaff.email && (
                                     <p className="text-xs text-zinc-500">{group.staff_projectgroup_guidestaffidTostaff.email}</p>
                                 )}
+                                {group.staff_projectgroup_guidestaffidTostaff.phone && (
+                                    <p className="text-xs text-zinc-500">{group.staff_projectgroup_guidestaffidTostaff.phone}</p>
+                                )}
                             </div>
                         )}
                         {group.staff_projectgroup_convenerstaffidTostaff && (
@@ -162,6 +165,20 @@ export default async function MyProjectPage() {
                                 <p className="text-sm font-medium mt-0.5">
                                     {group.staff_projectgroup_convenerstaffidTostaff.staffname}
                                 </p>
+                                {group.staff_projectgroup_convenerstaffidTostaff.email && (
+                                    <p className="text-xs text-zinc-500">{group.staff_projectgroup_convenerstaffidTostaff.email}</p>
+                                )}
+                            </div>
+                        )}
+                        {group.staff_projectgroup_expertstaffidTostaff && (
+                            <div className="p-4 rounded-xl bg-zinc-50 border border-zinc-100">
+                                <p className="text-xs text-zinc-500">Expert</p>
+                                <p className="text-sm font-medium mt-0.5">
+                                    {group.staff_projectgroup_expertstaffidTostaff.staffname}
+                                </p>
+                                {group.staff_projectgroup_expertstaffidTostaff.email && (
+                                    <p className="text-xs text-zinc-500">{group.staff_projectgroup_expertstaffidTostaff.email}</p>
+                                )}
                             </div>
                         )}
                     </div>
@@ -239,31 +256,40 @@ export default async function MyProjectPage() {
                                 {group.projectmeeting.slice(0, 5).map((meeting) => (
                                     <div
                                         key={meeting.projectmeetingid}
-                                        className="flex items-center justify-between p-3 rounded-lg bg-zinc-50/80"
+                                        className="p-3 rounded-lg bg-zinc-50/80 space-y-1.5"
                                     >
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-zinc-900 truncate">
-                                                {meeting.meetingpurpose}
-                                            </p>
-                                            <p className="text-xs text-zinc-500 mt-0.5">
-                                                {meeting.staff?.staffname || "—"} •{" "}
-                                                {new Date(meeting.meetingdatetime).toLocaleDateString("en-IN", {
-                                                    day: "numeric",
-                                                    month: "short",
-                                                })}
-                                            </p>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-zinc-900 truncate">
+                                                    {meeting.meetingpurpose}
+                                                </p>
+                                                <p className="text-xs text-zinc-500 mt-0.5">
+                                                    {meeting.staff?.staffname || "—"} •{" "}
+                                                    {new Date(meeting.meetingdatetime).toLocaleDateString("en-IN", {
+                                                        day: "numeric",
+                                                        month: "short",
+                                                    })}
+                                                    {meeting.meetinglocation && ` • ${meeting.meetinglocation}`}
+                                                </p>
+                                            </div>
+                                            <Badge
+                                                variant={
+                                                    meeting.meetingstatus === "Completed"
+                                                        ? "success"
+                                                        : meeting.meetingstatus === "Cancelled"
+                                                            ? "destructive"
+                                                            : "warning"
+                                                }
+                                            >
+                                                {meeting.meetingstatus || "Scheduled"}
+                                            </Badge>
                                         </div>
-                                        <Badge
-                                            variant={
-                                                meeting.meetingstatus === "Completed"
-                                                    ? "success"
-                                                    : meeting.meetingstatus === "Cancelled"
-                                                        ? "destructive"
-                                                        : "warning"
-                                            }
-                                        >
-                                            {meeting.meetingstatus || "Scheduled"}
-                                        </Badge>
+                                        {meeting.meetingnotes && (
+                                            <div className="text-xs text-zinc-600 bg-white rounded p-2 border border-zinc-100">
+                                                <span className="font-medium text-zinc-500">Notes: </span>
+                                                {meeting.meetingnotes}
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>

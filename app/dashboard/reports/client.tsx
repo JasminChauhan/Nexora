@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+
 import {
     BarChart3,
     Download,
-    Search,
+    // Search removed (unused)
+
     FileText,
     Users,
     Calendar,
@@ -30,7 +30,7 @@ export function ReportsClient({
     students: any[];
     staff: any[];
 }) {
-    const [search, setSearch] = useState("");
+
 
     function exportCSV(headers: string[], rows: string[][], filename: string) {
         const csvContent = [

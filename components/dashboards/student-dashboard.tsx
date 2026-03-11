@@ -264,6 +264,12 @@ export async function StudentDashboard({ username, userEmail }: StudentDashboard
                                         <p className="text-sm font-medium mt-0.5">
                                             {projectGroup.staff_projectgroup_guidestaffidTostaff.staffname}
                                         </p>
+                                        {projectGroup.staff_projectgroup_guidestaffidTostaff.email && (
+                                            <p className="text-xs text-zinc-500">{projectGroup.staff_projectgroup_guidestaffidTostaff.email}</p>
+                                        )}
+                                        {projectGroup.staff_projectgroup_guidestaffidTostaff.phone && (
+                                            <p className="text-xs text-zinc-500">{projectGroup.staff_projectgroup_guidestaffidTostaff.phone}</p>
+                                        )}
                                     </div>
                                 )}
                             </div>

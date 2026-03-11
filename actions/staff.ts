@@ -137,10 +137,33 @@ export async function updateStaff(id: number, formData: FormData): Promise<Actio
             updateData.password = await hashPassword(parsed.data.password);
         }
 
+        // Get existing staff to find old email for user sync
+        const existingStaff = await prisma.staff.findUnique({ where: { staffid: id } });
+
         await prisma.staff.update({
             where: { staffid: id },
             data: updateData,
         });
+
+        // Sync changes to users table (for login)
+        if (existingStaff?.email) {
+            const userUpdateData: Record<string, unknown> = {};
+            if (parsed.data.email && parsed.data.email !== existingStaff.email) {
+                userUpdateData.email = parsed.data.email;
+            }
+            if (parsed.data.staffname) {
+                userUpdateData.username = parsed.data.staffname.toLowerCase().replace(/\s+/g, "_");
+            }
+            if (parsed.data.password) {
+                userUpdateData.password_hash = updateData.password;
+            }
+            if (Object.keys(userUpdateData).length > 0) {
+                await prisma.users.updateMany({
+                    where: { email: existingStaff.email, role: "faculty" },
+                    data: userUpdateData,
+                });
+            }
+        }
 
         revalidatePath("/dashboard/staff");
         return { success: true, message: "Staff member updated successfully" };
@@ -156,6 +179,14 @@ export async function deleteStaff(id: number): Promise<ActionResponse> {
     try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
 
     try {
+        // Delete the corresponding user account first
+        const staffRecord = await prisma.staff.findUnique({ where: { staffid: id } });
+        if (staffRecord?.email) {
+            await prisma.users.deleteMany({
+                where: { email: staffRecord.email, role: "faculty" },
+            });
+        }
+
         await prisma.staff.delete({ where: { staffid: id } });
         revalidatePath("/dashboard/staff");
         return { success: true, message: "Staff member deleted successfully" };

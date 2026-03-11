@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getStudents } from "@/actions/students";
 import { StudentsClient } from "./client";
 
@@ -12,5 +13,9 @@ export default async function StudentsPage({
 
     const result = await getStudents(search, page, 10);
 
-    return <StudentsClient initialData={result} initialSearch={search} />;
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center py-12 text-zinc-400">Loading...</div>}>
+            <StudentsClient initialData={result} initialSearch={search} />
+        </Suspense>
+    );
 }

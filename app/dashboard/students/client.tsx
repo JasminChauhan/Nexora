@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition, useCallback, useEffect, useRef } from "react";
 import { createStudent, updateStudent, deleteStudent } from "@/actions/students";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { Plus, Pencil, Trash2, Users, Loader2, Search, Mail, Phone, ChevronLeft, ChevronRight } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 interface StudentData {
     studentid: number;
@@ -45,27 +45,52 @@ export function StudentsClient({
     initialSearch: string;
 }) {
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { addToast } = useToast();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editItem, setEditItem] = useState<StudentData | null>(null);
     const [loading, setLoading] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
     const [search, setSearch] = useState(initialSearch);
+    const [isPending, startTransition] = useTransition();
+    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const { data: students, total, page, totalPages } = initialData;
 
+    const navigateWithSearch = useCallback((searchValue: string, pageValue?: number) => {
+        const params = new URLSearchParams();
+        if (searchValue) params.set("search", searchValue);
+        if (pageValue && pageValue > 1) params.set("page", pageValue.toString());
+        const queryString = params.toString();
+        startTransition(() => {
+            router.push(`${pathname}${queryString ? `?${queryString}` : ""}`);
+        });
+    }, [pathname, router]);
+
     function handleSearch(e: React.FormEvent) {
         e.preventDefault();
-        const params = new URLSearchParams();
-        if (search) params.set("search", search);
-        router.push(`/dashboard/students?${params.toString()}`);
+        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+        navigateWithSearch(search);
     }
 
+    function handleSearchChange(value: string) {
+        setSearch(value);
+        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = setTimeout(() => {
+            navigateWithSearch(value);
+        }, 400);
+    }
+
+    // Clean up debounce timer on unmount
+    useEffect(() => {
+        return () => {
+            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+        };
+    }, []);
+
     function goToPage(p: number) {
-        const params = new URLSearchParams();
-        if (search) params.set("search", search);
-        params.set("page", p.toString());
-        router.push(`/dashboard/students?${params.toString()}`);
+        navigateWithSearch(search, p);
     }
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -133,6 +158,17 @@ export function StudentsClient({
                                 </div>
                             </div>
                             <div className="space-y-2">
+                                <Label htmlFor="password">Password {!editItem && "*"}</Label>
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    required={!editItem}
+                                    minLength={6}
+                                    placeholder={editItem ? "Leave blank to keep current password" : "Minimum 6 characters"}
+                                />
+                            </div>
+                            <div className="space-y-2">
                                 <Label htmlFor="description">Description</Label>
                                 <Textarea id="description" name="description" defaultValue={editItem?.description || ""} placeholder="Enrollment number, branch, etc." rows={2} />
                             </div>
@@ -156,7 +192,8 @@ export function StudentsClient({
                         </CardTitle>
                         <form onSubmit={handleSearch} className="relative w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                            <Input placeholder="Search students..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+                            <Input placeholder="Search students..." value={search} onChange={(e) => handleSearchChange(e.target.value)} className="pl-9 h-9" />
+                            {isPending && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 animate-spin" />}
                         </form>
                     </div>
                 </CardHeader>
