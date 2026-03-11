@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyToken } from "@/lib/auth";
+import { isRouteAllowedForRole } from "@/lib/roles";
+import type { UserRole } from "@/types";
 
 const publicPaths = ["/login", "/api/seed"];
 
@@ -36,7 +38,20 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
-    return NextResponse.next();
+    // ─── RBAC Route Protection ────────────────────────────────────
+    const userRole = payload.role as UserRole;
+
+    if (pathname.startsWith("/dashboard")) {
+        if (!isRouteAllowedForRole(pathname, userRole)) {
+            // Redirect unauthorized users back to their dashboard
+            return NextResponse.redirect(new URL("/dashboard", request.url));
+        }
+    }
+
+    // Attach role to response headers so layouts can read it (optional optimization)
+    const response = NextResponse.next();
+    response.headers.set("x-user-role", userRole);
+    return response;
 }
 
 export const config = {

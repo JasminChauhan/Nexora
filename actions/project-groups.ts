@@ -2,19 +2,67 @@
 
 import { prisma } from "@/lib/prisma";
 import { projectGroupSchema } from "@/lib/validations";
+import { getSession } from "@/lib/auth";
+import { requireAdmin, requireAdminOrFaculty } from "@/lib/roles";
 import type { ActionResponse } from "@/types";
 import { revalidatePath } from "next/cache";
 
+/**
+ * Get project groups scoped by role:
+ * - Admin: all groups
+ * - Faculty: only groups where they are the guide
+ * - Student: only their own group
+ */
 export async function getProjectGroups(search?: string) {
-    return prisma.projectgroup.findMany({
-        where: search
-            ? {
-                OR: [
-                    { projectgroupname: { contains: search, mode: "insensitive" } },
-                    { projecttitle: { contains: search, mode: "insensitive" } },
-                ],
+    const session = await getSession();
+    if (!session) throw new Error("Unauthorized");
+
+    // Build base where clause from search
+    const searchWhere = search
+        ? {
+            OR: [
+                { projectgroupname: { contains: search, mode: "insensitive" as const } },
+                { projecttitle: { contains: search, mode: "insensitive" as const } },
+            ],
+        }
+        : undefined;
+
+    // Role-based scoping
+    let roleWhere = {};
+
+    if (session.role === "faculty") {
+        const staffRecord = await prisma.staff.findFirst({
+            where: { email: session.email },
+        });
+        if (staffRecord) {
+            roleWhere = { guidestaffid: staffRecord.staffid };
+        } else {
+            return []; // No staff record found — return empty
+        }
+    } else if (session.role === "student") {
+        const studentRecord = await prisma.student.findFirst({
+            where: { email: session.email },
+        });
+        if (studentRecord) {
+            const membership = await prisma.projectgroupmember.findFirst({
+                where: { studentid: studentRecord.studentid },
+            });
+            if (membership) {
+                roleWhere = { projectgroupid: membership.projectgroupid };
+            } else {
+                return [];
             }
-            : undefined,
+        } else {
+            return [];
+        }
+    }
+    // Admin: no additional filter
+
+    return prisma.projectgroup.findMany({
+        where: {
+            ...searchWhere,
+            ...roleWhere,
+        },
         orderBy: { projectgroupid: "desc" },
         include: {
             projecttype: true,
@@ -35,6 +83,34 @@ export async function getProjectGroups(search?: string) {
 }
 
 export async function getProjectGroupById(id: number) {
+    const session = await getSession();
+    if (!session) throw new Error("Unauthorized");
+
+    // Verify access: faculty can only view groups they guide, students only their group
+    if (session.role === "faculty") {
+        const staffRecord = await prisma.staff.findFirst({
+            where: { email: session.email },
+        });
+        const group = await prisma.projectgroup.findUnique({
+            where: { projectgroupid: id },
+        });
+        if (group && staffRecord && group.guidestaffid !== staffRecord.staffid) {
+            throw new Error("Unauthorized: not your assigned group");
+        }
+    } else if (session.role === "student") {
+        const studentRecord = await prisma.student.findFirst({
+            where: { email: session.email },
+        });
+        if (studentRecord) {
+            const membership = await prisma.projectgroupmember.findFirst({
+                where: { studentid: studentRecord.studentid, projectgroupid: id },
+            });
+            if (!membership) {
+                throw new Error("Unauthorized: not your project group");
+            }
+        }
+    }
+
     return prisma.projectgroup.findUnique({
         where: { projectgroupid: id },
         include: {
@@ -60,6 +136,10 @@ export async function getProjectGroupById(id: number) {
 }
 
 export async function createProjectGroup(formData: FormData): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     const raw = {
         projectgroupname: formData.get("projectgroupname") as string,
         projecttypeid: formData.get("projecttypeid") as string,
@@ -111,6 +191,10 @@ export async function createProjectGroup(formData: FormData): Promise<ActionResp
 }
 
 export async function updateProjectGroup(id: number, formData: FormData): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     const raw = {
         projectgroupname: formData.get("projectgroupname") as string,
         projecttypeid: formData.get("projecttypeid") as string,
@@ -163,6 +247,10 @@ export async function updateProjectGroup(id: number, formData: FormData): Promis
 }
 
 export async function deleteProjectGroup(id: number): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     try {
         await prisma.projectgroup.delete({ where: { projectgroupid: id } });
         revalidatePath("/dashboard/project-groups");
@@ -174,6 +262,10 @@ export async function deleteProjectGroup(id: number): Promise<ActionResponse> {
 }
 
 export async function updateGroupStatus(id: number, status: string): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     try {
         await prisma.projectgroup.update({
             where: { projectgroupid: id },
@@ -187,13 +279,17 @@ export async function updateGroupStatus(id: number, status: string): Promise<Act
     }
 }
 
-// Group member actions
+// Group member actions — Admin only
 export async function addGroupMember(
     projectgroupid: number,
     studentid: number,
     isgroupleader: number = 0,
     studentcgpa?: number
 ): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     try {
         await prisma.projectgroupmember.create({
             data: {
@@ -204,7 +300,6 @@ export async function addGroupMember(
             },
         });
 
-        // Recalculate average CPI
         await recalculateAverageCPI(projectgroupid);
 
         revalidatePath("/dashboard/project-groups");
@@ -216,6 +311,10 @@ export async function addGroupMember(
 }
 
 export async function removeGroupMember(memberId: number): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     try {
         const member = await prisma.projectgroupmember.findUnique({
             where: { projectgroupmemberid: memberId },
@@ -238,14 +337,16 @@ export async function removeGroupMember(memberId: number): Promise<ActionRespons
 }
 
 export async function setGroupLeader(memberId: number, projectgroupid: number): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     try {
-        // Remove leader status from all members
         await prisma.projectgroupmember.updateMany({
             where: { projectgroupid },
             data: { isgroupleader: 0 },
         });
 
-        // Set new leader
         await prisma.projectgroupmember.update({
             where: { projectgroupmemberid: memberId },
             data: { isgroupleader: 1 },
@@ -265,7 +366,6 @@ async function recalculateAverageCPI(projectgroupid: number) {
     });
 
     const cgpas = members
-
         .map((m) => Number(m.studentcgpa))
         .filter((c) => !isNaN(c) && c > 0);
 

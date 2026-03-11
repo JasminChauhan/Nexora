@@ -1,7 +1,14 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import { ReportsClient } from "./client";
 
 export default async function ReportsPage() {
+    const session = await getSession();
+    if (!session || session.role !== "admin") {
+        redirect("/dashboard");
+    }
+
     const [projectGroups, meetings, students, staff] = await Promise.all([
         prisma.projectgroup.findMany({
             include: {

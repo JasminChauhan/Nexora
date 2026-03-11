@@ -46,11 +46,14 @@ export function MeetingsClient({
     meetings,
     groups,
     staff,
+    userRole = "student",
 }: {
     meetings: any[];
     groups: any[];
     staff: any[];
+    userRole?: string;
 }) {
+    const canManage = userRole === "admin" || userRole === "faculty";
     const router = useRouter();
     const { addToast } = useToast();
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -177,62 +180,64 @@ export function MeetingsClient({
                     <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Meetings</h1>
                     <p className="text-zinc-500 text-sm mt-1">Schedule, track, and manage project meetings</p>
                 </div>
-                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button><Plus className="w-4 h-4 mr-2" />Schedule Meeting</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Schedule Meeting</DialogTitle>
-                            <DialogDescription>Create a new project meeting</DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="projectgroupid">Project Group *</Label>
-                                <Select id="projectgroupid" name="projectgroupid" required>
-                                    <option value="">Select group</option>
-                                    {groups.map((g: any) => (
-                                        <option key={g.projectgroupid} value={g.projectgroupid}>{g.projectgroupname} — {g.projecttitle}</option>
-                                    ))}
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="guidestaffid">Guide</Label>
-                                <Select id="guidestaffid" name="guidestaffid">
-                                    <option value="">Select guide</option>
-                                    {staff.map((s: any) => (
-                                        <option key={s.staffid} value={s.staffid}>{s.staffname}</option>
-                                    ))}
-                                </Select>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
+                {canManage && (
+                    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button><Plus className="w-4 h-4 mr-2" />Schedule Meeting</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Schedule Meeting</DialogTitle>
+                                <DialogDescription>Create a new project meeting</DialogDescription>
+                            </DialogHeader>
+                            <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="meetingdatetime">Date & Time *</Label>
-                                    <Input id="meetingdatetime" name="meetingdatetime" type="datetime-local" required />
+                                    <Label htmlFor="projectgroupid">Project Group *</Label>
+                                    <Select id="projectgroupid" name="projectgroupid" required>
+                                        <option value="">Select group</option>
+                                        {groups.map((g: any) => (
+                                            <option key={g.projectgroupid} value={g.projectgroupid}>{g.projectgroupname} — {g.projecttitle}</option>
+                                        ))}
+                                    </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="meetinglocation">Location</Label>
-                                    <Input id="meetinglocation" name="meetinglocation" placeholder="Room, lab, online link" />
+                                    <Label htmlFor="guidestaffid">Guide</Label>
+                                    <Select id="guidestaffid" name="guidestaffid">
+                                        <option value="">Select guide</option>
+                                        {staff.map((s: any) => (
+                                            <option key={s.staffid} value={s.staffid}>{s.staffname}</option>
+                                        ))}
+                                    </Select>
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="meetingpurpose">Purpose *</Label>
-                                <Textarea id="meetingpurpose" name="meetingpurpose" required placeholder="What is the meeting about?" rows={2} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="description">Notes</Label>
-                                <Textarea id="description" name="description" placeholder="Additional notes" rows={2} />
-                            </div>
-                            <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                                <Button type="submit" disabled={loading}>
-                                    {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                    Schedule
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="meetingdatetime">Date & Time *</Label>
+                                        <Input id="meetingdatetime" name="meetingdatetime" type="datetime-local" required />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="meetinglocation">Location</Label>
+                                        <Input id="meetinglocation" name="meetinglocation" placeholder="Room, lab, online link" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="meetingpurpose">Purpose *</Label>
+                                    <Textarea id="meetingpurpose" name="meetingpurpose" required placeholder="What is the meeting about?" rows={2} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="description">Notes</Label>
+                                    <Textarea id="description" name="description" placeholder="Additional notes" rows={2} />
+                                </div>
+                                <DialogFooter>
+                                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                                    <Button type="submit" disabled={loading}>
+                                        {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                        Schedule
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                )}
             </div>
 
             <Card>
@@ -256,7 +261,7 @@ export function MeetingsClient({
                                 <TableHead>Date & Time</TableHead>
                                 <TableHead>Location</TableHead>
                                 <TableHead className="text-center">Status</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                                {canManage && <TableHead className="text-right">Actions</TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -300,26 +305,28 @@ export function MeetingsClient({
                                                 {m.meetingstatus || "Scheduled"}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <Button variant="ghost" size="sm" onClick={() => setEntryDialog(m)} title="Record">
-                                                    <FileText className="w-4 h-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="sm" onClick={() => openAttendance(m.projectmeetingid)} title="Attendance">
-                                                    <CheckSquare className="w-4 h-4" />
-                                                </Button>
-                                                {deleteConfirm === m.projectmeetingid ? (
-                                                    <div className="flex items-center gap-1">
-                                                        <Button variant="destructive" size="sm" onClick={() => handleDelete(m.projectmeetingid)} disabled={loading}>Confirm</Button>
-                                                        <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-                                                    </div>
-                                                ) : (
-                                                    <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(m.projectmeetingid)}>
-                                                        <Trash2 className="w-4 h-4 text-red-500" />
+                                        {canManage && (
+                                            <TableCell className="text-right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <Button variant="ghost" size="sm" onClick={() => setEntryDialog(m)} title="Record">
+                                                        <FileText className="w-4 h-4" />
                                                     </Button>
-                                                )}
-                                            </div>
-                                        </TableCell>
+                                                    <Button variant="ghost" size="sm" onClick={() => openAttendance(m.projectmeetingid)} title="Attendance">
+                                                        <CheckSquare className="w-4 h-4" />
+                                                    </Button>
+                                                    {deleteConfirm === m.projectmeetingid ? (
+                                                        <div className="flex items-center gap-1">
+                                                            <Button variant="destructive" size="sm" onClick={() => handleDelete(m.projectmeetingid)} disabled={loading}>Confirm</Button>
+                                                            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+                                                        </div>
+                                                    ) : (
+                                                        <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(m.projectmeetingid)}>
+                                                            <Trash2 className="w-4 h-4 text-red-500" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))
                             )}
@@ -390,8 +397,8 @@ export function MeetingsClient({
                                             setAttendanceData(updated);
                                         }}
                                         className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors cursor-pointer ${a.ispresent === 1
-                                                ? "bg-emerald-500 border-emerald-500 text-white"
-                                                : "border-zinc-300 bg-white"
+                                            ? "bg-emerald-500 border-emerald-500 text-white"
+                                            : "border-zinc-300 bg-white"
                                             }`}
                                     >
                                         {a.ispresent === 1 && <CheckSquare className="w-4 h-4" />}

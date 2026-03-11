@@ -2,11 +2,16 @@
 
 import { prisma } from "@/lib/prisma";
 import { staffSchema, staffUpdateSchema } from "@/lib/validations";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword, getSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/roles";
 import type { ActionResponse } from "@/types";
 import { revalidatePath } from "next/cache";
 
 export async function getStaff(search?: string) {
+    const session = await getSession();
+    if (!session) throw new Error("Unauthorized");
+    requireAdmin(session.role);
+
     return prisma.staff.findMany({
         where: search
             ? {
@@ -21,10 +26,26 @@ export async function getStaff(search?: string) {
 }
 
 export async function getStaffById(id: number) {
+    const session = await getSession();
+    if (!session) throw new Error("Unauthorized");
+    requireAdmin(session.role);
+
     return prisma.staff.findUnique({ where: { staffid: id } });
 }
 
+// Public helper for dropdowns — returns minimal data (used by project group forms)
+export async function getStaffList() {
+    return prisma.staff.findMany({
+        select: { staffid: true, staffname: true, email: true },
+        orderBy: { staffname: "asc" },
+    });
+}
+
 export async function createStaff(formData: FormData): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     const raw = {
         staffname: formData.get("staffname") as string,
         phone: formData.get("phone") as string,
@@ -82,6 +103,10 @@ export async function createStaff(formData: FormData): Promise<ActionResponse> {
 }
 
 export async function updateStaff(id: number, formData: FormData): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     const raw = {
         staffname: formData.get("staffname") as string,
         phone: formData.get("phone") as string,
@@ -126,6 +151,10 @@ export async function updateStaff(id: number, formData: FormData): Promise<Actio
 }
 
 export async function deleteStaff(id: number): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     try {
         await prisma.staff.delete({ where: { staffid: id } });
         revalidatePath("/dashboard/staff");

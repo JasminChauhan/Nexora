@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { projectTypeSchema } from "@/lib/validations";
+import { getSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/roles";
 import type { ActionResponse } from "@/types";
 import { revalidatePath } from "next/cache";
 
@@ -17,6 +19,10 @@ export async function getProjectTypes() {
 }
 
 export async function createProjectType(formData: FormData): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     const raw = {
         projecttypename: formData.get("projecttypename") as string,
         description: formData.get("description") as string,
@@ -42,6 +48,10 @@ export async function createProjectType(formData: FormData): Promise<ActionRespo
 }
 
 export async function updateProjectType(id: number, formData: FormData): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     const raw = {
         projecttypename: formData.get("projecttypename") as string,
         description: formData.get("description") as string,
@@ -70,6 +80,10 @@ export async function updateProjectType(id: number, formData: FormData): Promise
 }
 
 export async function deleteProjectType(id: number): Promise<ActionResponse> {
+    const session = await getSession();
+    if (!session) return { success: false, message: "Unauthorized" };
+    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+
     try {
         await prisma.projecttype.delete({ where: { projecttypeid: id } });
         revalidatePath("/dashboard/project-types");

@@ -52,12 +52,15 @@ export function ProjectGroupsClient({
     projectTypes,
     staff,
     students,
+    userRole = "student",
 }: {
     groups: any[];
     projectTypes: any[];
     staff: any[];
     students: any[];
+    userRole?: string;
 }) {
+    const isAdmin = userRole === "admin";
     const router = useRouter();
     const { addToast } = useToast();
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -185,85 +188,87 @@ export function ProjectGroupsClient({
                     <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Project Groups</h1>
                     <p className="text-zinc-500 text-sm mt-1">Manage projects, assign guides, and track progress</p>
                 </div>
-                <Dialog
-                    open={dialogOpen}
-                    onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditItem(null); }}
-                >
-                    <DialogTrigger asChild>
-                        <Button><Plus className="w-4 h-4 mr-2" />Create Group</Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>{editItem ? "Edit" : "Create"} Project Group</DialogTitle>
-                            <DialogDescription>
-                                {editItem ? "Update the project group details" : "Set up a new project group"}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="projectgroupname">Group Name *</Label>
-                                    <Input id="projectgroupname" name="projectgroupname" defaultValue={editItem?.projectgroupname || ""} required placeholder="e.g., Group A" />
+                {isAdmin && (
+                    <Dialog
+                        open={dialogOpen}
+                        onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditItem(null); }}
+                    >
+                        <DialogTrigger asChild>
+                            <Button><Plus className="w-4 h-4 mr-2" />Create Group</Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle>{editItem ? "Edit" : "Create"} Project Group</DialogTitle>
+                                <DialogDescription>
+                                    {editItem ? "Update the project group details" : "Set up a new project group"}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="projectgroupname">Group Name *</Label>
+                                        <Input id="projectgroupname" name="projectgroupname" defaultValue={editItem?.projectgroupname || ""} required placeholder="e.g., Group A" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="projecttypeid">Project Type *</Label>
+                                        <Select id="projecttypeid" name="projecttypeid" defaultValue={editItem?.projecttypeid?.toString() || ""} required>
+                                            <option value="">Select type</option>
+                                            {projectTypes.map((pt: any) => (
+                                                <option key={pt.projecttypeid} value={pt.projecttypeid}>{pt.projecttypename}</option>
+                                            ))}
+                                        </Select>
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="projecttypeid">Project Type *</Label>
-                                    <Select id="projecttypeid" name="projecttypeid" defaultValue={editItem?.projecttypeid?.toString() || ""} required>
-                                        <option value="">Select type</option>
-                                        {projectTypes.map((pt: any) => (
-                                            <option key={pt.projecttypeid} value={pt.projecttypeid}>{pt.projecttypename}</option>
-                                        ))}
-                                    </Select>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="projecttitle">Project Title *</Label>
-                                <Input id="projecttitle" name="projecttitle" defaultValue={editItem?.projecttitle || ""} required placeholder="Full project title" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="projectarea">Project Area</Label>
-                                <Input id="projectarea" name="projectarea" defaultValue={editItem?.projectarea || ""} placeholder="e.g., Machine Learning, Web Dev" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="projectdescription">Project Description</Label>
-                                <Textarea id="projectdescription" name="projectdescription" defaultValue={editItem?.projectdescription || ""} rows={3} placeholder="Detailed project description" />
-                            </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="guidestaffid">Guide</Label>
-                                    <Select id="guidestaffid" name="guidestaffid" defaultValue={editItem?.guidestaffid?.toString() || ""}>
-                                        <option value="">Select guide</option>
-                                        {staff.map((s: any) => (<option key={s.staffid} value={s.staffid}>{s.staffname}</option>))}
-                                    </Select>
+                                    <Label htmlFor="projecttitle">Project Title *</Label>
+                                    <Input id="projecttitle" name="projecttitle" defaultValue={editItem?.projecttitle || ""} required placeholder="Full project title" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="convenerstaffid">Convener</Label>
-                                    <Select id="convenerstaffid" name="convenerstaffid" defaultValue={editItem?.convenerstaffid?.toString() || ""}>
-                                        <option value="">Select convener</option>
-                                        {staff.map((s: any) => (<option key={s.staffid} value={s.staffid}>{s.staffname}</option>))}
-                                    </Select>
+                                    <Label htmlFor="projectarea">Project Area</Label>
+                                    <Input id="projectarea" name="projectarea" defaultValue={editItem?.projectarea || ""} placeholder="e.g., Machine Learning, Web Dev" />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="expertstaffid">Expert</Label>
-                                    <Select id="expertstaffid" name="expertstaffid" defaultValue={editItem?.expertstaffid?.toString() || ""}>
-                                        <option value="">Select expert</option>
-                                        {staff.map((s: any) => (<option key={s.staffid} value={s.staffid}>{s.staffname}</option>))}
-                                    </Select>
+                                    <Label htmlFor="projectdescription">Project Description</Label>
+                                    <Textarea id="projectdescription" name="projectdescription" defaultValue={editItem?.projectdescription || ""} rows={3} placeholder="Detailed project description" />
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="description">Notes</Label>
-                                <Textarea id="description" name="description" defaultValue={editItem?.description || ""} rows={2} placeholder="Additional notes" />
-                            </div>
-                            <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                                <Button type="submit" disabled={loading}>
-                                    {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                    {editItem ? "Update" : "Create"}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="guidestaffid">Guide</Label>
+                                        <Select id="guidestaffid" name="guidestaffid" defaultValue={editItem?.guidestaffid?.toString() || ""}>
+                                            <option value="">Select guide</option>
+                                            {staff.map((s: any) => (<option key={s.staffid} value={s.staffid}>{s.staffname}</option>))}
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="convenerstaffid">Convener</Label>
+                                        <Select id="convenerstaffid" name="convenerstaffid" defaultValue={editItem?.convenerstaffid?.toString() || ""}>
+                                            <option value="">Select convener</option>
+                                            {staff.map((s: any) => (<option key={s.staffid} value={s.staffid}>{s.staffname}</option>))}
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="expertstaffid">Expert</Label>
+                                        <Select id="expertstaffid" name="expertstaffid" defaultValue={editItem?.expertstaffid?.toString() || ""}>
+                                            <option value="">Select expert</option>
+                                            {staff.map((s: any) => (<option key={s.staffid} value={s.staffid}>{s.staffname}</option>))}
+                                        </Select>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="description">Notes</Label>
+                                    <Textarea id="description" name="description" defaultValue={editItem?.description || ""} rows={2} placeholder="Additional notes" />
+                                </div>
+                                <DialogFooter>
+                                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                                    <Button type="submit" disabled={loading}>
+                                        {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                        {editItem ? "Update" : "Create"}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                )}
             </div>
 
             {/* Search */}
@@ -323,26 +328,30 @@ export function ProjectGroupsClient({
                                     <Button variant="ghost" size="sm" onClick={() => setDetailGroup(g)}>
                                         <Eye className="w-4 h-4 mr-1" />Details
                                     </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => setMemberDialog(g)}>
-                                        <UserPlus className="w-4 h-4 mr-1" />Members
-                                    </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => { setEditItem(g); setDialogOpen(true); }}>
-                                        <Pencil className="w-4 h-4 mr-1" />Edit
-                                    </Button>
-                                    {deleteConfirm === g.projectgroupid ? (
-                                        <div className="flex items-center gap-1 ml-auto">
-                                            <Button variant="destructive" size="sm" onClick={() => handleDelete(g.projectgroupid)} disabled={loading}>Delete</Button>
-                                            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-                                        </div>
-                                    ) : (
-                                        <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(g.projectgroupid)} className="ml-auto">
-                                            <Trash2 className="w-4 h-4 text-red-500" />
-                                        </Button>
+                                    {isAdmin && (
+                                        <>
+                                            <Button variant="ghost" size="sm" onClick={() => setMemberDialog(g)}>
+                                                <UserPlus className="w-4 h-4 mr-1" />Members
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => { setEditItem(g); setDialogOpen(true); }}>
+                                                <Pencil className="w-4 h-4 mr-1" />Edit
+                                            </Button>
+                                            {deleteConfirm === g.projectgroupid ? (
+                                                <div className="flex items-center gap-1 ml-auto">
+                                                    <Button variant="destructive" size="sm" onClick={() => handleDelete(g.projectgroupid)} disabled={loading}>Delete</Button>
+                                                    <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+                                                </div>
+                                            ) : (
+                                                <Button variant="ghost" size="sm" onClick={() => setDeleteConfirm(g.projectgroupid)} className="ml-auto">
+                                                    <Trash2 className="w-4 h-4 text-red-500" />
+                                                </Button>
+                                            )}
+                                        </>
                                     )}
                                 </div>
 
                                 {/* Status actions */}
-                                {(g.status === "pending" || !g.status) && (
+                                {isAdmin && (g.status === "pending" || !g.status) && (
                                     <div className="flex items-center gap-2 pt-2 border-t border-zinc-100">
                                         <span className="text-xs text-zinc-500">Actions:</span>
                                         <Button size="sm" variant="outline" className="text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => handleStatusChange(g.projectgroupid, "approved")}>

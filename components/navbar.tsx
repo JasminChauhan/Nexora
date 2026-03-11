@@ -5,40 +5,34 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/actions/auth";
 import {
-    LayoutDashboard,
-    Users,
-    UserCog,
-    FolderKanban,
-    UsersRound,
-    Calendar,
-    BarChart3,
     LogOut,
     Menu,
     X,
     GraduationCap,
     ChevronDown,
+    UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getNavItemsForRole } from "@/lib/roles";
 import type { SessionUser } from "@/types";
 
 interface NavbarProps {
     user: SessionUser;
 }
 
-const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard/students", label: "Students", icon: Users },
-    { href: "/dashboard/staff", label: "Staff", icon: UserCog },
-    { href: "/dashboard/project-types", label: "Project Types", icon: FolderKanban },
-    { href: "/dashboard/project-groups", label: "Project Groups", icon: UsersRound },
-    { href: "/dashboard/meetings", label: "Meetings", icon: Calendar },
-    { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
-];
+const roleBadgeColors: Record<string, string> = {
+    admin: "bg-zinc-900 text-white",
+    faculty: "bg-blue-600 text-white",
+    student: "bg-emerald-600 text-white",
+};
 
 export function Navbar({ user }: NavbarProps) {
     const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
+
+    // Get role-based nav items
+    const navItems = getNavItemsForRole(user.role);
 
     const isActive = (href: string) => {
         if (href === "/dashboard") return pathname === "/dashboard";
@@ -59,7 +53,7 @@ export function Navbar({ user }: NavbarProps) {
                         </span>
                     </Link>
 
-                    {/* Desktop nav */}
+                    {/* Desktop nav – role-specific items */}
                     <nav className="hidden lg:flex items-center gap-1 mx-4">
                         {navItems.map((item) => {
                             const Icon = item.icon;
@@ -108,7 +102,10 @@ export function Navbar({ user }: NavbarProps) {
                                         <div className="px-3 py-2.5 border-b border-zinc-100">
                                             <p className="text-sm font-medium text-zinc-900">{user.username}</p>
                                             <p className="text-xs text-zinc-500">{user.email}</p>
-                                            <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-zinc-100 text-zinc-600">
+                                            <span className={cn(
+                                                "inline-block mt-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full",
+                                                roleBadgeColors[user.role] || "bg-zinc-100 text-zinc-600"
+                                            )}>
                                                 {user.role}
                                             </span>
                                         </div>
@@ -145,7 +142,7 @@ export function Navbar({ user }: NavbarProps) {
                 </div>
             </div>
 
-            {/* Mobile menu */}
+            {/* Mobile menu – role-specific items */}
             {mobileMenuOpen && (
                 <div className="lg:hidden border-t border-zinc-200/80 bg-white">
                     <nav className="mx-auto max-w-7xl px-4 py-3 space-y-1">
