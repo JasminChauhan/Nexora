@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SPMS — Student Project Management System",
+  title: "Nexora",
   description:
-    "A comprehensive system for managing student projects, groups, meetings, and progress tracking",
+    "Nexora is a comprehensive system for managing student projects, groups, meetings, and progress tracking",
 };
 
 export default function RootLayout({

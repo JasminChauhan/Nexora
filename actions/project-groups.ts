@@ -28,35 +28,22 @@ export async function getProjectGroups(search?: string) {
         : undefined;
 
     // Role-based scoping
-    let roleWhere = {};
+    let roleWhere: any = { admin_id: session.adminId };
 
-    if (session.role === "faculty") {
-        const staffRecord = await prisma.staff.findFirst({
-            where: { email: session.email },
+    if (session.role === "faculty" && session.staffId) {
+        roleWhere.guidestaffid = session.staffId;
+    } else if (session.role === "student" && session.studentId) {
+        const membership = await prisma.projectgroupmember.findFirst({
+            where: { studentid: session.studentId },
         });
-        if (staffRecord) {
-            roleWhere = { guidestaffid: staffRecord.staffid };
+        if (membership) {
+            roleWhere.projectgroupid = membership.projectgroupid;
         } else {
-            return []; // No staff record found — return empty
+            return []; // no group assigned
         }
-    } else if (session.role === "student") {
-        const studentRecord = await prisma.student.findFirst({
-            where: { email: session.email },
-        });
-        if (studentRecord) {
-            const membership = await prisma.projectgroupmember.findFirst({
-                where: { studentid: studentRecord.studentid },
-            });
-            if (membership) {
-                roleWhere = { projectgroupid: membership.projectgroupid };
-            } else {
-                return [];
-            }
-        } else {
-            return [];
-        }
+    } else if (session.role !== "admin") {
+        return [];
     }
-    // Admin: no additional filter
 
     return prisma.projectgroup.findMany({
         where: {
@@ -87,27 +74,22 @@ export async function getProjectGroupById(id: number) {
     if (!session) throw new Error("Unauthorized");
 
     // Verify access: faculty can only view groups they guide, students only their group
+    const group = await prisma.projectgroup.findUnique({
+        where: { projectgroupid: id, admin_id: session.adminId },
+    });
+
+    if (!group) throw new Error("Not found or unauthorized");
+
     if (session.role === "faculty") {
-        const staffRecord = await prisma.staff.findFirst({
-            where: { email: session.email },
-        });
-        const group = await prisma.projectgroup.findUnique({
-            where: { projectgroupid: id },
-        });
-        if (group && staffRecord && group.guidestaffid !== staffRecord.staffid) {
+        if (group.guidestaffid !== session.staffId) {
             throw new Error("Unauthorized: not your assigned group");
         }
     } else if (session.role === "student") {
-        const studentRecord = await prisma.student.findFirst({
-            where: { email: session.email },
+        const membership = await prisma.projectgroupmember.findFirst({
+            where: { studentid: session.studentId, projectgroupid: id },
         });
-        if (studentRecord) {
-            const membership = await prisma.projectgroupmember.findFirst({
-                where: { studentid: studentRecord.studentid, projectgroupid: id },
-            });
-            if (!membership) {
-                throw new Error("Unauthorized: not your project group");
-            }
+        if (!membership) {
+            throw new Error("Unauthorized: not your project group");
         }
     }
 
@@ -179,6 +161,7 @@ export async function createProjectGroup(formData: FormData): Promise<ActionResp
                 expertstaffid: parsed.data.expertstaffid || null,
                 description: parsed.data.description || null,
                 status: "pending",
+                admin_id: session.adminId,
             },
         });
 
@@ -193,7 +176,7 @@ export async function createProjectGroup(formData: FormData): Promise<ActionResp
 export async function updateProjectGroup(id: number, formData: FormData): Promise<ActionResponse> {
     const session = await getSession();
     if (!session) return { success: false, message: "Unauthorized" };
-    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+    try { requireAdminOrFaculty(session.role); } catch { return { success: false, message: "Access restricted" }; }
 
     const raw = {
         projectgroupname: formData.get("projectgroupname") as string,
@@ -217,6 +200,13 @@ export async function updateProjectGroup(id: number, formData: FormData): Promis
     }
 
     try {
+        const existingGroup = await prisma.projectgroup.findUnique({ where: { projectgroupid: id } });
+        if (!existingGroup || existingGroup.admin_id !== session.adminId) {
+            return { success: false, message: "Project group not found or unauthorized" };
+        }
+        if (session.role === "faculty" && existingGroup.guidestaffid !== session.staffId) {
+            return { success: false, message: "You can only edit groups you are assigned to as a guide" };
+        }
         const guide = parsed.data.guidestaffid
             ? await prisma.staff.findUnique({ where: { staffid: parsed.data.guidestaffid } })
             : null;
@@ -252,6 +242,11 @@ export async function deleteProjectGroup(id: number): Promise<ActionResponse> {
     try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
 
     try {
+        const existingGroup = await prisma.projectgroup.findUnique({ where: { projectgroupid: id } });
+        if (!existingGroup || existingGroup.admin_id !== session.adminId) {
+            return { success: false, message: "Project group not found or unauthorized" };
+        }
+
         await prisma.projectgroup.delete({ where: { projectgroupid: id } });
         revalidatePath("/dashboard/project-groups");
         return { success: true, message: "Project group deleted successfully" };
@@ -267,6 +262,11 @@ export async function updateGroupStatus(id: number, status: string): Promise<Act
     try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
 
     try {
+        const existingGroup = await prisma.projectgroup.findUnique({ where: { projectgroupid: id } });
+        if (!existingGroup || existingGroup.admin_id !== session.adminId) {
+            return { success: false, message: "Project group not found or unauthorized" };
+        }
+
         await prisma.projectgroup.update({
             where: { projectgroupid: id },
             data: { status, modified: new Date() },
@@ -279,7 +279,7 @@ export async function updateGroupStatus(id: number, status: string): Promise<Act
     }
 }
 
-// Group member actions — Admin only
+// Group member actions — Admin and Faculty guiding the group
 export async function addGroupMember(
     projectgroupid: number,
     studentid: number,
@@ -288,9 +288,16 @@ export async function addGroupMember(
 ): Promise<ActionResponse> {
     const session = await getSession();
     if (!session) return { success: false, message: "Unauthorized" };
-    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+    try { requireAdminOrFaculty(session.role); } catch { return { success: false, message: "Access restricted" }; }
 
     try {
+        const group = await prisma.projectgroup.findUnique({ where: { projectgroupid } });
+        if (!group || group.admin_id !== session.adminId) {
+            return { success: false, message: "Group not found" };
+        }
+        if (session.role === "faculty" && group.guidestaffid !== session.staffId) {
+            return { success: false, message: "Unauthorized to add members to this group" };
+        }
         await prisma.projectgroupmember.create({
             data: {
                 projectgroupid,
@@ -313,12 +320,21 @@ export async function addGroupMember(
 export async function removeGroupMember(memberId: number): Promise<ActionResponse> {
     const session = await getSession();
     if (!session) return { success: false, message: "Unauthorized" };
-    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+    try { requireAdminOrFaculty(session.role); } catch { return { success: false, message: "Access restricted" }; }
 
     try {
         const member = await prisma.projectgroupmember.findUnique({
             where: { projectgroupmemberid: memberId },
+            include: { projectgroup: true },
         });
+
+        if (!member || member.projectgroup.admin_id !== session.adminId) {
+            return { success: false, message: "Member not found" };
+        }
+
+        if (session.role === "faculty" && member.projectgroup.guidestaffid !== session.staffId) {
+            return { success: false, message: "Unauthorized to remove members from this group" };
+        }
 
         await prisma.projectgroupmember.delete({
             where: { projectgroupmemberid: memberId },
@@ -339,9 +355,16 @@ export async function removeGroupMember(memberId: number): Promise<ActionRespons
 export async function setGroupLeader(memberId: number, projectgroupid: number): Promise<ActionResponse> {
     const session = await getSession();
     if (!session) return { success: false, message: "Unauthorized" };
-    try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
+    try { requireAdminOrFaculty(session.role); } catch { return { success: false, message: "Access restricted" }; }
 
     try {
+        const group = await prisma.projectgroup.findUnique({ where: { projectgroupid } });
+        if (!group || group.admin_id !== session.adminId) {
+            return { success: false, message: "Group not found" };
+        }
+        if (session.role === "faculty" && group.guidestaffid !== session.staffId) {
+            return { success: false, message: "Unauthorized" };
+        }
         await prisma.projectgroupmember.updateMany({
             where: { projectgroupid },
             data: { isgroupleader: 0 },

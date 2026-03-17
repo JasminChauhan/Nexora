@@ -5,6 +5,9 @@ export interface SessionUser {
     username: string;
     email: string;
     role: UserRole;
+    adminId: number; // For multi-tenancy (tenant = admin)
+    staffId?: number;
+    studentId?: number;
 }
 
 export interface JWTPayload {
@@ -12,6 +15,9 @@ export interface JWTPayload {
     username: string;
     email: string;
     role: UserRole;
+    adminId: number;
+    staffId?: number;
+    studentId?: number;
     iat: number;
     exp: number;
 }

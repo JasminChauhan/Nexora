@@ -14,12 +14,13 @@ export async function getStudents(search?: string, page = 1, limit = 10) {
 
     const where = search
         ? {
+            admin_id: session.adminId,
             OR: [
                 { studentname: { contains: search, mode: "insensitive" as const } },
                 { email: { contains: search, mode: "insensitive" as const } },
             ],
         }
-        : undefined;
+        : { admin_id: session.adminId };
 
     const [data, total] = await Promise.all([
         prisma.student.findMany({
@@ -53,7 +54,11 @@ export async function getStudents(search?: string, page = 1, limit = 10) {
 }
 
 export async function getAllStudents() {
+    const session = await getSession();
+    if (!session) return [];
+
     return prisma.student.findMany({
+        where: { admin_id: session.adminId },
         orderBy: { studentname: "asc" },
     });
 }
@@ -64,7 +69,7 @@ export async function getStudentById(id: number) {
     requireAdmin(session.role);
 
     return prisma.student.findUnique({
-        where: { studentid: id },
+        where: { studentid: id, admin_id: session.adminId },
         include: {
             projectgroupmember: {
                 include: {
@@ -98,33 +103,37 @@ export async function createStudent(formData: FormData): Promise<ActionResponse>
     }
 
     try {
-        await prisma.student.create({
-            data: {
-                studentname: parsed.data.studentname,
-                phone: parsed.data.phone || null,
-                email: parsed.data.email || null,
-                description: parsed.data.description || null,
-            },
-        });
-
-        // Also create a user record for student login
-        if (parsed.data.email) {
-            const existingUser = await prisma.users.findUnique({
-                where: { email: parsed.data.email },
+        await prisma.$transaction(async (tx) => {
+            await tx.student.create({
+                data: {
+                    studentname: parsed.data.studentname,
+                    phone: parsed.data.phone || null,
+                    email: parsed.data.email || null,
+                    description: parsed.data.description || null,
+                    admin_id: session.adminId, // tenant link
+                },
             });
-            if (!existingUser) {
+
+            if (parsed.data.email) {
+                const existingUser = await tx.users.findUnique({
+                    where: { email: parsed.data.email },
+                });
+                if (existingUser) {
+                    throw new Error("Email already used for another account");
+                }
                 const hashedPassword = await hashPassword(parsed.data.password);
-                await prisma.users.create({
+                await tx.users.create({
                     data: {
-                        username: parsed.data.studentname.toLowerCase().replace(/\s+/g, "_"),
+                        username: parsed.data.studentname.toLowerCase().replace(/\s+/g, "_") + Math.floor(Math.random() * 1000),
                         email: parsed.data.email,
                         password_hash: hashedPassword,
                         role: "student",
                         is_active: true,
+                        admin_id: session.adminId, // link user to admin
                     },
                 });
             }
-        }
+        });
 
         revalidatePath("/dashboard/students");
         return { success: true, message: "Student created successfully" };
@@ -157,39 +166,44 @@ export async function updateStudent(id: number, formData: FormData): Promise<Act
     }
 
     try {
-        // Get existing student for user sync
         const existingStudent = await prisma.student.findUnique({ where: { studentid: id } });
-
-        await prisma.student.update({
-            where: { studentid: id },
-            data: {
-                studentname: parsed.data.studentname,
-                phone: parsed.data.phone || null,
-                email: parsed.data.email || null,
-                description: parsed.data.description || null,
-                modified: new Date(),
-            },
-        });
-
-        // Sync changes to users table (for login)
-        if (existingStudent?.email) {
-            const userUpdateData: Record<string, unknown> = {};
-            if (parsed.data.email && parsed.data.email !== existingStudent.email) {
-                userUpdateData.email = parsed.data.email;
-            }
-            if (parsed.data.studentname) {
-                userUpdateData.username = parsed.data.studentname.toLowerCase().replace(/\s+/g, "_");
-            }
-            if (parsed.data.password) {
-                userUpdateData.password_hash = await hashPassword(parsed.data.password);
-            }
-            if (Object.keys(userUpdateData).length > 0) {
-                await prisma.users.updateMany({
-                    where: { email: existingStudent.email, role: "student" },
-                    data: userUpdateData,
-                });
-            }
+        if (!existingStudent || existingStudent.admin_id !== session.adminId) {
+            return { success: false, message: "Student not found or unauthorized" };
         }
+
+        await prisma.$transaction(async (tx) => {
+            await tx.student.update({
+                where: { studentid: id },
+                data: {
+                    studentname: parsed.data.studentname,
+                    phone: parsed.data.phone || null,
+                    email: parsed.data.email || null,
+                    description: parsed.data.description || null,
+                    modified: new Date(),
+                },
+            });
+
+            if (existingStudent.email) {
+                const userUpdateData: Record<string, unknown> = {};
+                if (parsed.data.email && parsed.data.email !== existingStudent.email) {
+                    const emailCheck = await tx.users.findUnique({ where: { email: parsed.data.email } });
+                    if (emailCheck) throw new Error("Email already in use");
+                    userUpdateData.email = parsed.data.email;
+                }
+                if (parsed.data.studentname) {
+                    userUpdateData.username = parsed.data.studentname.toLowerCase().replace(/\s+/g, "_") + Math.floor(Math.random() * 1000);
+                }
+                if (parsed.data.password) {
+                    userUpdateData.password_hash = await hashPassword(parsed.data.password);
+                }
+                if (Object.keys(userUpdateData).length > 0) {
+                    await tx.users.updateMany({
+                        where: { email: existingStudent.email, role: "student" },
+                        data: userUpdateData,
+                    });
+                }
+            }
+        });
 
         revalidatePath("/dashboard/students");
         return { success: true, message: "Student updated successfully" };
@@ -205,15 +219,19 @@ export async function deleteStudent(id: number): Promise<ActionResponse> {
     try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
 
     try {
-        // Delete the corresponding user account first
         const studentRecord = await prisma.student.findUnique({ where: { studentid: id } });
-        if (studentRecord?.email) {
-            await prisma.users.deleteMany({
-                where: { email: studentRecord.email, role: "student" },
-            });
+        if (!studentRecord || studentRecord.admin_id !== session.adminId) {
+            return { success: false, message: "Student not found or unauthorized" };
         }
 
-        await prisma.student.delete({ where: { studentid: id } });
+        await prisma.$transaction(async (tx) => {
+            if (studentRecord.email) {
+                await tx.users.deleteMany({
+                    where: { email: studentRecord.email, role: "student" },
+                });
+            }
+            await tx.student.delete({ where: { studentid: id } });
+        });
         revalidatePath("/dashboard/students");
         return { success: true, message: "Student deleted successfully" };
     } catch (error) {

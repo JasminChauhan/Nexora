@@ -26,33 +26,21 @@ export async function getMeetings(search?: string) {
         }
         : undefined;
 
-    let roleWhere = {};
+    let roleWhere: any = { projectgroup: { admin_id: session.adminId } };
 
-    if (session.role === "faculty") {
-        const staffRecord = await prisma.staff.findFirst({
-            where: { email: session.email },
+    if (session.role === "faculty" && session.staffId) {
+        roleWhere.guidestaffid = session.staffId;
+    } else if (session.role === "student" && session.studentId) {
+        const membership = await prisma.projectgroupmember.findFirst({
+            where: { studentid: session.studentId },
         });
-        if (staffRecord) {
-            roleWhere = { guidestaffid: staffRecord.staffid };
+        if (membership) {
+            roleWhere.projectgroupid = membership.projectgroupid;
         } else {
             return [];
         }
-    } else if (session.role === "student") {
-        const studentRecord = await prisma.student.findFirst({
-            where: { email: session.email },
-        });
-        if (studentRecord) {
-            const membership = await prisma.projectgroupmember.findFirst({
-                where: { studentid: studentRecord.studentid },
-            });
-            if (membership) {
-                roleWhere = { projectgroupid: membership.projectgroupid };
-            } else {
-                return [];
-            }
-        } else {
-            return [];
-        }
+    } else if (session.role !== "admin") {
+        return [];
     }
 
     return prisma.projectmeeting.findMany({
@@ -99,27 +87,23 @@ export async function getMeetingById(id: number) {
         },
     });
 
-    if (!meeting) return null;
+    if (!meeting || meeting.projectgroup.admin_id !== session.adminId) return null;
 
     // Verify access
     if (session.role === "faculty") {
-        const staffRecord = await prisma.staff.findFirst({
-            where: { email: session.email },
-        });
-        if (!staffRecord || meeting.guidestaffid !== staffRecord.staffid) {
+        if (meeting.guidestaffid !== session.staffId) {
             throw new Error("Unauthorized: not your meeting");
         }
     } else if (session.role === "student") {
-        const studentRecord = await prisma.student.findFirst({
-            where: { email: session.email },
-        });
-        if (studentRecord) {
+        if (session.studentId) {
             const isMember = meeting.projectgroup.projectgroupmember.some(
-                (m) => m.studentid === studentRecord.studentid
+                (m) => m.studentid === session.studentId
             );
             if (!isMember) {
                 throw new Error("Unauthorized: not your group's meeting");
             }
+        } else {
+            throw new Error("Unauthorized");
         }
     }
 
@@ -127,8 +111,14 @@ export async function getMeetingById(id: number) {
 }
 
 export async function getMeetingsByGroup(groupId: number) {
+    const session = await getSession();
+    if (!session) return [];
+
     return prisma.projectmeeting.findMany({
-        where: { projectgroupid: groupId },
+        where: { 
+            projectgroupid: groupId,
+            projectgroup: { admin_id: session.adminId }
+        },
         orderBy: { meetingdatetime: "desc" },
         include: {
             staff: { select: { staffname: true } },
@@ -162,17 +152,16 @@ export async function createMeeting(formData: FormData): Promise<ActionResponse>
         };
     }
 
-    // Faculty can only create meetings for their own groups
-    if (session.role === "faculty") {
-        const staffRecord = await prisma.staff.findFirst({
-            where: { email: session.email },
-        });
-        const group = await prisma.projectgroup.findUnique({
-            where: { projectgroupid: parsed.data.projectgroupid },
-        });
-        if (!staffRecord || !group || group.guidestaffid !== staffRecord.staffid) {
-            return { success: false, message: "You can only create meetings for your assigned groups" };
-        }
+    const group = await prisma.projectgroup.findUnique({
+        where: { projectgroupid: parsed.data.projectgroupid },
+    });
+    
+    if (!group || group.admin_id !== session.adminId) {
+        return { success: false, message: "Group not found or unauthorized" };
+    }
+
+    if (session.role === "faculty" && group.guidestaffid !== session.staffId) {
+        return { success: false, message: "You can only create meetings for your assigned groups" };
     }
 
     try {
@@ -217,6 +206,17 @@ export async function updateMeetingEntry(id: number, formData: FormData): Promis
     }
 
     try {
+        const meeting = await prisma.projectmeeting.findUnique({ 
+            where: { projectmeetingid: id },
+            include: { projectgroup: true }
+        });
+        if (!meeting || meeting.projectgroup.admin_id !== session.adminId) {
+            return { success: false, message: "Meeting not found or unauthorized" };
+        }
+        if (session.role === "faculty" && meeting.projectgroup.guidestaffid !== session.staffId) {
+            return { success: false, message: "Unauthorized to update this meeting" };
+        }
+
         await prisma.projectmeeting.update({
             where: { projectmeetingid: id },
             data: {
@@ -242,6 +242,17 @@ export async function deleteMeeting(id: number): Promise<ActionResponse> {
     try { requireAdminOrFaculty(session.role); } catch { return { success: false, message: "Admin or Faculty access required" }; }
 
     try {
+        const meeting = await prisma.projectmeeting.findUnique({ 
+            where: { projectmeetingid: id },
+            include: { projectgroup: true }
+        });
+        if (!meeting || meeting.projectgroup.admin_id !== session.adminId) {
+            return { success: false, message: "Meeting not found or unauthorized" };
+        }
+        if (session.role === "faculty" && meeting.projectgroup.guidestaffid !== session.staffId) {
+            return { success: false, message: "Unauthorized to delete this meeting" };
+        }
+
         await prisma.projectmeeting.delete({ where: { projectmeetingid: id } });
         revalidatePath("/dashboard/meetings");
         return { success: true, message: "Meeting deleted successfully" };
@@ -261,6 +272,17 @@ export async function saveAttendance(
     try { requireAdminOrFaculty(session.role); } catch { return { success: false, message: "Admin or Faculty access required" }; }
 
     try {
+        const meeting = await prisma.projectmeeting.findUnique({ 
+            where: { projectmeetingid: meetingId },
+            include: { projectgroup: true }
+        });
+        if (!meeting || meeting.projectgroup.admin_id !== session.adminId) {
+            return { success: false, message: "Meeting not found or unauthorized" };
+        }
+        if (session.role === "faculty" && meeting.projectgroup.guidestaffid !== session.staffId) {
+            return { success: false, message: "Unauthorized to save attendance for this meeting" };
+        }
+
         await prisma.projectmeetingattendance.deleteMany({
             where: { projectmeetingid: meetingId },
         });

@@ -54,11 +54,34 @@ export async function loginAction(formData: FormData): Promise<ActionResponse> {
             return { success: false, message: "Account is deactivated" };
         }
 
+        let adminId = user.id; // admin owns their own tenant
+        let staffId: number | undefined;
+        let studentId: number | undefined;
+
+        if (role === "faculty") {
+            const staff = await prisma.staff.findFirst({ where: { email } });
+            if (!staff || !staff.admin_id) {
+                return { success: false, message: "Faculty profile not fully configured (missing admin link). Contact admin." };
+            }
+            staffId = staff.staffid;
+            adminId = staff.admin_id;
+        } else if (role === "student") {
+            const student = await prisma.student.findFirst({ where: { email } });
+            if (!student || !student.admin_id) {
+                return { success: false, message: "Student profile not fully configured (missing admin link). Contact admin." };
+            }
+            studentId = student.studentid;
+            adminId = student.admin_id;
+        }
+
         const token = await createToken({
             id: user.id,
             username: user.username,
             email: user.email,
             role: user.role as "admin" | "faculty" | "student",
+            adminId,
+            staffId,
+            studentId,
         });
 
         await setSessionCookie(token);
@@ -75,31 +98,50 @@ export async function logoutAction(): Promise<void> {
     redirect("/login");
 }
 
-export async function seedAdminAction(): Promise<ActionResponse> {
+export async function registerAdminAction(formData: FormData): Promise<ActionResponse> {
+    const raw = {
+        username: formData.get("username") as string,
+        email: formData.get("email") as string,
+        password: formData.get("password") as string,
+        confirmPassword: formData.get("confirmPassword") as string,
+    };
+
+    const parsed = (await import("@/lib/validations")).adminRegisterSchema.safeParse(raw);
+    
+    if (!parsed.success) {
+        return {
+            success: false,
+            message: "Validation failed",
+            errors: parsed.error.flatten().fieldErrors,
+        };
+    }
+
+    const { username, email, password } = parsed.data;
+
     try {
-        const existingAdmin = await prisma.users.findFirst({
-            where: { role: "admin" },
+        const existingAdmin = await prisma.users.findUnique({
+            where: { email },
         });
 
         if (existingAdmin) {
-            return { success: false, message: "Admin account already exists" };
+            return { success: false, message: "Email is already registered" };
         }
 
-        const hashedPassword = await hashPassword("admin123");
+        const hashedPassword = await hashPassword(password);
 
         await prisma.users.create({
             data: {
-                username: "admin",
-                email: "admin@spms.com",
+                username,
+                email,
                 password_hash: hashedPassword,
                 role: "admin",
                 is_active: true,
             },
         });
 
-        return { success: true, message: "Admin account created. Email: admin@spms.com, Password: admin123" };
+        return { success: true, message: "Admin account registered successfully. Please sign in." };
     } catch (error) {
-        console.error("Seed error:", error);
+        console.error("Register error:", error);
         return { success: false, message: "Failed to create admin account" };
     }
 }

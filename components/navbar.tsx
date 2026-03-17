@@ -49,7 +49,7 @@ export function Navbar({ user }: NavbarProps) {
                             <GraduationCap className="w-4.5 h-4.5" />
                         </div>
                         <span className="font-semibold text-zinc-900 tracking-tight hidden sm:block">
-                            SPMS
+                            Nexora
                         </span>
                     </Link>
 

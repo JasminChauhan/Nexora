@@ -4,13 +4,17 @@ import { verifyToken } from "@/lib/auth";
 import { isRouteAllowedForRole } from "@/lib/roles";
 import type { UserRole } from "@/types";
 
-const publicPaths = ["/login", "/api/seed"];
+const publicPrefixes = ["/login", "/api/seed"];
+const publicExact = ["/"];
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    // Allow public paths
-    if (publicPaths.some((path) => pathname.startsWith(path))) {
+    // Allow public paths (exact matches + prefix matches)
+    if (
+        publicExact.includes(pathname) ||
+        publicPrefixes.some((path) => pathname.startsWith(path))
+    ) {
         return NextResponse.next();
     }
 
@@ -33,10 +37,7 @@ export async function middleware(request: NextRequest) {
         return response;
     }
 
-    // Redirect root to dashboard
-    if (pathname === "/") {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+    // Root is now the public landing page, handled by its own page.tsx
 
     // ─── RBAC Route Protection ────────────────────────────────────
     const userRole = payload.role as UserRole;

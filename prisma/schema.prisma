@@ -29,6 +29,9 @@ model projectgroup {
   projecttype                               projecttype?         @relation(fields: [projecttypeid], references: [projecttypeid], onUpdate: NoAction)
   projectgroupmember                        projectgroupmember[]
   projectmeeting                            projectmeeting[]
+
+  admin_id                                  Int?
+  admin                                     users?               @relation("ProjectGroupAdmin", fields: [admin_id], references: [id], onDelete: Cascade)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -89,6 +92,9 @@ model projecttype {
   created         DateTime?      @default(now()) @db.Timestamp(6)
   modified        DateTime?      @default(now()) @db.Timestamp(6)
   projectgroup    projectgroup[]
+
+  admin_id        Int?
+  admin           users?         @relation("ProjectTypeAdmin", fields: [admin_id], references: [id], onDelete: Cascade)
 }
 
 model staff {
@@ -104,6 +110,9 @@ model staff {
   projectgroup_projectgroup_expertstaffidTostaff   projectgroup[]   @relation("projectgroup_expertstaffidTostaff")
   projectgroup_projectgroup_guidestaffidTostaff    projectgroup[]   @relation("projectgroup_guidestaffidTostaff")
   projectmeeting                                   projectmeeting[]
+
+  admin_id                                         Int?
+  admin                                            users?           @relation("StaffAdmin", fields: [admin_id], references: [id], onDelete: Cascade)
 }
 
 model student {
@@ -116,6 +125,9 @@ model student {
   modified                 DateTime?                  @default(now()) @db.Timestamp(6)
   projectgroupmember       projectgroupmember[]
   projectmeetingattendance projectmeetingattendance[]
+
+  admin_id                 Int?
+  admin                    users?               @relation("StudentAdmin", fields: [admin_id], references: [id], onDelete: Cascade)
 }
 
 model users {
@@ -126,4 +138,13 @@ model users {
   role          String?   @default("user") @db.VarChar(20)
   is_active     Boolean?  @default(true)
   created_at    DateTime? @default(now()) @db.Timestamp(6)
+
+  admin_id      Int?
+  admin         users?    @relation("UserAdmin", fields: [admin_id], references: [id], onDelete: Cascade)
+  created_users users[]   @relation("UserAdmin")
+
+  projectgroups projectgroup[] @relation("ProjectGroupAdmin")
+  projecttypes  projecttype[]  @relation("ProjectTypeAdmin")
+  staffs        staff[]        @relation("StaffAdmin")
+  students      student[]      @relation("StudentAdmin")
 }

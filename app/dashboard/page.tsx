@@ -13,7 +13,7 @@ export default async function DashboardPage() {
 
     switch (session.role) {
         case "admin":
-            return <AdminDashboard username={session.username} />;
+            return <AdminDashboard username={session.username} adminId={session.adminId} />;
         case "faculty":
             return (
                 <FacultyDashboard

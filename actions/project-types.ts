@@ -8,7 +8,11 @@ import type { ActionResponse } from "@/types";
 import { revalidatePath } from "next/cache";
 
 export async function getProjectTypes() {
+    const session = await getSession();
+    if (!session) return [];
+
     return prisma.projecttype.findMany({
+        where: { admin_id: session.adminId },
         orderBy: { projecttypeid: "desc" },
         include: {
             _count: {
@@ -38,7 +42,12 @@ export async function createProjectType(formData: FormData): Promise<ActionRespo
     }
 
     try {
-        await prisma.projecttype.create({ data: parsed.data });
+        await prisma.projecttype.create({ 
+            data: { 
+                ...parsed.data, 
+                admin_id: session.adminId 
+            } 
+        });
         revalidatePath("/dashboard/project-types");
         return { success: true, message: "Project type created successfully" };
     } catch (error) {
@@ -67,6 +76,11 @@ export async function updateProjectType(id: number, formData: FormData): Promise
     }
 
     try {
+        const existing = await prisma.projecttype.findUnique({ where: { projecttypeid: id } });
+        if (!existing || existing.admin_id !== session.adminId) {
+            return { success: false, message: "Project type not found or unauthorized" };
+        }
+
         await prisma.projecttype.update({
             where: { projecttypeid: id },
             data: { ...parsed.data, modified: new Date() },
@@ -85,6 +99,11 @@ export async function deleteProjectType(id: number): Promise<ActionResponse> {
     try { requireAdmin(session.role); } catch { return { success: false, message: "Admin access required" }; }
 
     try {
+        const existing = await prisma.projecttype.findUnique({ where: { projecttypeid: id } });
+        if (!existing || existing.admin_id !== session.adminId) {
+            return { success: false, message: "Project type not found or unauthorized" };
+        }
+
         await prisma.projecttype.delete({ where: { projecttypeid: id } });
         revalidatePath("/dashboard/project-types");
         return { success: true, message: "Project type deleted successfully" };

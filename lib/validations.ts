@@ -7,6 +7,16 @@ export const loginSchema = z.object({
     role: z.enum(["admin", "faculty", "student"]),
 });
 
+export const adminRegisterSchema = z.object({
+    username: z.string().min(1, "Username is required").max(100),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+});
+
 // Project Type schemas
 export const projectTypeSchema = z.object({
     projecttypename: z
@@ -111,3 +121,4 @@ export type ProjectGroupMemberFormData = z.infer<typeof projectGroupMemberSchema
 export type MeetingFormData = z.infer<typeof meetingSchema>;
 export type MeetingEntryFormData = z.infer<typeof meetingEntrySchema>;
 export type MeetingAttendanceFormData = z.infer<typeof meetingAttendanceSchema>;
+export type AdminRegisterFormData = z.infer<typeof adminRegisterSchema>;

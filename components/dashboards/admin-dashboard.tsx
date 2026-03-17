@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-export async function AdminDashboard({ username }: { username: string }) {
+export async function AdminDashboard({ username, adminId }: { username: string, adminId: number }) {
     const [
         studentCount,
         staffCount,
@@ -29,16 +29,17 @@ export async function AdminDashboard({ username }: { username: string }) {
         upcomingMeetings,
         recentGroups,
     ] = await Promise.all([
-        prisma.student.count(),
-        prisma.staff.count(),
-        prisma.projectgroup.count(),
-        prisma.projectmeeting.count(),
-        prisma.projecttype.count(),
-        prisma.projectgroup.count({ where: { status: "pending" } }),
+        prisma.student.count({ where: { admin_id: adminId } }),
+        prisma.staff.count({ where: { admin_id: adminId } }),
+        prisma.projectgroup.count({ where: { admin_id: adminId } }),
+        prisma.projectmeeting.count({ where: { projectgroup: { admin_id: adminId } } }),
+        prisma.projecttype.count({ where: { admin_id: adminId } }),
+        prisma.projectgroup.count({ where: { status: "pending", admin_id: adminId } }),
         prisma.projectmeeting.findMany({
             where: {
                 meetingdatetime: { gte: new Date() },
                 meetingstatus: "Scheduled",
+                projectgroup: { admin_id: adminId }
             },
             orderBy: { meetingdatetime: "asc" },
             take: 5,
@@ -48,6 +49,7 @@ export async function AdminDashboard({ username }: { username: string }) {
             },
         }),
         prisma.projectgroup.findMany({
+            where: { admin_id: adminId },
             orderBy: { created: "desc" },
             take: 5,
             include: {
