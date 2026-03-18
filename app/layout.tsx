@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Nexora",
   description:
-    "Nexora is a comprehensive system for managing student projects, groups, meetings, and progress tracking",
+    "Smart Management for Smarter Campuses.",
 };
 
 export default function RootLayout({

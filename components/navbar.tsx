@@ -45,9 +45,10 @@ export function Navbar({ user }: NavbarProps) {
                 <div className="flex h-16 items-center justify-between">
                     {/* Logo */}
                     <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
-                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 text-white">
+                        {/* <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 text-white">
                             <GraduationCap className="w-4.5 h-4.5" />
-                        </div>
+                        </div> */}
+                        <img className="w-12 h-12 object-contain drop-shadow-sm rounded-lg" src="/Logo_new.png" alt="Nexora Logo" />
                         <span className="font-semibold text-zinc-900 tracking-tight hidden sm:block">
                             Nexora
                         </span>

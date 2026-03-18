@@ -155,9 +155,10 @@ export default function LandingPage() {
             <header className="fixed top-0 inset-x-0 z-50 border-b border-zinc-200/60 bg-white/70 backdrop-blur-xl supports-[backdrop-filter]:bg-white/50">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
                     <Link href="/" className="flex items-center gap-2.5">
-                        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-900 text-white shadow-lg shadow-zinc-900/20">
+                        {/* <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-900 text-white shadow-lg shadow-zinc-900/20">
                             <GraduationCap className="w-5 h-5" />
-                        </div>
+                        </div> */}
+                        <img className="w-12 h-12 object-contain drop-shadow-sm rounded-lg" src="/Logo_new.png" alt="Nexora Logo" />
                         <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 bg-clip-text text-transparent">
                             Nexora
                         </span>
@@ -256,11 +257,10 @@ export default function LandingPage() {
 
                 <div
                     ref={heroReveal.ref}
-                    className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center transition-all duration-1000 ${
-                        heroReveal.visible
-                            ? "opacity-100 translate-y-0"
-                            : "opacity-0 translate-y-8"
-                    }`}
+                    className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center transition-all duration-1000 ${heroReveal.visible
+                        ? "opacity-100 translate-y-0"
+                        : "opacity-0 translate-y-8"
+                        }`}
                 >
                     {/* Badge */}
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-100 border border-zinc-200/80 text-xs font-semibold text-zinc-600 mb-6 shadow-sm">
@@ -374,11 +374,10 @@ export default function LandingPage() {
             <section id="features" className="py-20 md:py-32 bg-zinc-50/50">
                 <div
                     ref={featuresReveal.ref}
-                    className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-1000 ${
-                        featuresReveal.visible
-                            ? "opacity-100 translate-y-0"
-                            : "opacity-0 translate-y-8"
-                    }`}
+                    className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-1000 ${featuresReveal.visible
+                        ? "opacity-100 translate-y-0"
+                        : "opacity-0 translate-y-8"
+                        }`}
                 >
                     <div className="text-center max-w-2xl mx-auto mb-16">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-xs font-semibold text-blue-600 mb-4">
@@ -431,11 +430,10 @@ export default function LandingPage() {
             <section id="how-it-works" className="py-20 md:py-32">
                 <div
                     ref={stepsReveal.ref}
-                    className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-1000 ${
-                        stepsReveal.visible
-                            ? "opacity-100 translate-y-0"
-                            : "opacity-0 translate-y-8"
-                    }`}
+                    className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-1000 ${stepsReveal.visible
+                        ? "opacity-100 translate-y-0"
+                        : "opacity-0 translate-y-8"
+                        }`}
                 >
                     <div className="text-center max-w-2xl mx-auto mb-16">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-xs font-semibold text-emerald-600 mb-4">
@@ -531,11 +529,10 @@ export default function LandingPage() {
             <section className="py-20 md:py-32">
                 <div
                     ref={ctaReveal.ref}
-                    className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-1000 ${
-                        ctaReveal.visible
-                            ? "opacity-100 translate-y-0"
-                            : "opacity-0 translate-y-8"
-                    }`}
+                    className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 transition-all duration-1000 ${ctaReveal.visible
+                        ? "opacity-100 translate-y-0"
+                        : "opacity-0 translate-y-8"
+                        }`}
                 >
                     <div className="relative bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 rounded-3xl p-10 md:p-16 text-center text-white overflow-hidden shadow-2xl">
                         {/* Decorative */}
@@ -577,36 +574,71 @@ export default function LandingPage() {
             </section>
 
             {/* ═══ FOOTER ═══ */}
-            <footer className="border-t border-zinc-200/60 py-12 bg-zinc-50/50">
+            <footer className="border-t border-zinc-200/60 pt-16 pb-8 bg-zinc-50/50">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div className="flex items-center gap-2.5">
-                            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 text-white">
-                                <GraduationCap className="w-4 h-4" />
-                            </div>
-                            <span className="font-semibold tracking-tight text-zinc-900">
-                                Nexora
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-6 text-sm text-zinc-500">
-                            <a href="#features" className="hover:text-zinc-900 transition-colors">
-                                Features
-                            </a>
-                            <a href="#how-it-works" className="hover:text-zinc-900 transition-colors">
-                                How It Works
-                            </a>
-                            <a href="#stats" className="hover:text-zinc-900 transition-colors">
-                                Stats
-                            </a>
-                            <Link href="/login" className="hover:text-zinc-900 transition-colors">
-                                Sign In
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8 mb-12">
+                        <div className="md:col-span-1">
+                            <Link href="/" className="flex items-center gap-2.5 mb-4">
+                                {/* <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-zinc-900 text-white shadow-md shadow-zinc-900/10">
+                                    <GraduationCap className="w-4 h-4" />
+                                </div> */}
+                                <img className="w-12 h-12 object-contain drop-shadow-sm rounded-lg" src="/Logo_new.png" alt="Nexora Logo" />
+                                <span className="font-bold tracking-tight text-zinc-900 text-lg">
+                                    Nexora
+                                </span>
                             </Link>
+                            <p className="text-sm text-zinc-500 leading-relaxed max-w-xs">
+                                Intelligent project management system for academic institutions, empowering students and faculty to achieve more together.
+                            </p>
+                            <div className="flex items-center gap-4 mt-6">
+                                <a href="https://github.com/JasminChauhan" className="text-zinc-400 hover:text-zinc-900 transition-colors" target="_blank">
+                                    <span className="sr-only">GitHub</span>
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" /></svg>
+                                </a>
+                                <a href="https://www.linkedin.com/in/jasmin-chauhan-ab7534289/" className="text-zinc-400 hover:text-zinc-900 transition-colors" target="_blank">
+                                    <span className="sr-only">LinkedIn</span>
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clipRule="evenodd" /></svg>
+                                </a>
+                            </div>
                         </div>
 
-                        <p className="text-xs text-zinc-400">
+                        <div>
+                            <h3 className="font-semibold text-zinc-900 mb-4">Product</h3>
+                            <ul className="space-y-3">
+                                <li><a href="#features" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">Features</a></li>
+                                <li><a href="#how-it-works" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">How It Works</a></li>
+                                <li><a href="#stats" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">Statistics</a></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className="font-semibold text-zinc-900 mb-4">Resources</h3>
+                            <ul className="space-y-3">
+                                <li><Link href="#" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">Help Center</Link></li>
+                                <li><Link href="#" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">API Documentation</Link></li>
+                                <li><Link href="#" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">Community Forum</Link></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className="font-semibold text-zinc-900 mb-4">Company</h3>
+                            <ul className="space-y-3">
+                                <li><Link href="#" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">About Us</Link></li>
+                                <li><Link href="#" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">Privacy Policy</Link></li>
+                                <li><Link href="#" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">Terms of Service</Link></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="pt-8 border-t border-zinc-200/60 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <p className="text-sm text-zinc-500">
                             © {new Date().getFullYear()} Nexora. All rights reserved.
                         </p>
+                        <div className="flex items-center gap-2 text-sm text-zinc-500">
+                            <span>Designed with</span>
+                            <svg className="w-4 h-4 text-red-500 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+                            <span>for Education</span>
+                        </div>
                     </div>
                 </div>
             </footer>

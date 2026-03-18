@@ -72,11 +72,9 @@ export default function LoginPage() {
             <div className="w-full max-w-md">
                 {/* Logo + Heading */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-zinc-900 text-white mb-4 shadow-lg">
-                        <GraduationCap className="w-7 h-7" />
-                    </div>
+                    <img className="mx-auto w-20 h-20 object-contain mb-4 drop-shadow-sm rounded-lg" src="/Logo_new.png" alt="Nexora Logo" />
                     <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">
-                        Student Project Management
+                        Nexora
                     </h1>
                     <p className="text-zinc-500 mt-1 text-sm">
                         {isRegistering ? "Register a new administrator account" : "Sign in to your account to continue"}
@@ -107,8 +105,8 @@ export default function LoginPage() {
                                             type="button"
                                             onClick={() => setSelectedRole(role.value)}
                                             className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer border ${selectedRole === role.value
-                                                    ? `${role.color} border-transparent shadow-md scale-[1.02]`
-                                                    : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+                                                ? `${role.color} border-transparent shadow-md scale-[1.02]`
+                                                : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
                                                 }`}
                                         >
                                             {role.label}
@@ -250,7 +248,7 @@ export default function LoginPage() {
                 </Card>
 
                 <p className="text-xs text-zinc-400 text-center mt-6">
-                    SPMS — Student Project Management System
+                    Nexora — Smart Management for Smarter Campuses.
                 </p>
             </div>
         </div>
