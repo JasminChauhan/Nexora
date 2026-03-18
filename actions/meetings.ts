@@ -97,7 +97,7 @@ export async function getMeetingById(id: number) {
     } else if (session.role === "student") {
         if (session.studentId) {
             const isMember = meeting.projectgroup.projectgroupmember.some(
-                (m) => m.studentid === session.studentId
+                (m: { studentid: number }) => m.studentid === session.studentId
             );
             if (!isMember) {
                 throw new Error("Unauthorized: not your group's meeting");
